@@ -1,0 +1,55 @@
+{% load staticfiles %}
+
+<style type="text/css">
+    .span12{
+        width:700px;
+    }
+    #files{
+        margin-top: 5px;
+        margin-bottom: 10px;
+    }
+</style>
+
+<script type="text/javascript">
+    $("#uploadform").submit(function(e){
+        e.preventDefault();
+        var formData = new FormData($("#uploadform")[0]);
+        $.ajax({
+            url:$("#uploadform").attr("action"),
+            type: 'POST',
+            beforeSend: function(){
+                $("#uploadform").append("<div id = 'loadingscreen'><img src = '/site_media/odetta/img/loader.gif' /></div>");
+            },
+            success: function(response){
+                $(".closedialog").click();
+                graphOverplot(response.flux_data);
+                $("#opOptions").css("display","block");
+                $("#legend").attr("display","inline");
+                $("#loadingscreen").remove();
+            },
+            data: formData,
+            cache: false,
+            contentType: false,
+            processData: false
+        });
+    });
+
+</script>
+
+<div class = "row-fluid">
+    <div class = "span12">
+        <form action = "{% url 'odetta.views.ajax_overplot' model_id=model_id %}" method = "POST" id = "uploadform">
+            {% csrf_token %}
+            <h2>Upload a File for Comparison</h2>
+            <p>  
+                <input id = "files" name = "files" type = "file" />
+            </p>
+            <p>
+                Redshift constant: <input id = "redshift" name = "redshift" type = "text"/>
+            </p>
+            <input type = "hidden" name = "model_id" value = "{{model_id}}"/>
+            <input type = "submit" value = "Upload"/>
+            <button class = "closedialog">Cancel</button>
+        </form>
+    </div>
+</div>

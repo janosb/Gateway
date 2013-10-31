@@ -1,0 +1,52 @@
+<style type="text/css">
+    #errormsg{
+        color:red;
+        font-size: 16px;
+        padding-top: 5px;
+    }
+</style>
+
+<script type="text/javascript">
+    $("#passwordForm").submit(function(e){
+        e.preventDefault();
+        var formData = new FormData($("#passwordForm")[0]);
+        $.ajax({
+            url: $('#passwordForm').attr("action"),
+            type: 'POST',
+            success: function(response){
+                if(response.error){
+                    $("#errormsg").html(response.error);
+                } else{
+                    $("#terriblefix").attr("href",response.url);
+                    $("#terriblefix").click();
+                }
+            },
+
+            data: formData,
+            cache: false,
+            contentType: false,
+            processData: false
+        });
+    });
+</script>
+
+<div class = "row-fluid">
+    <div class = "span12">
+        <form action = "{% url 'odetta.views.ajax_validate' pub_id=pub_id %}" method = "POST" id = "passwordForm">
+            {% csrf_token %}
+            <h2>Access Denied</h2>
+            <p>
+                This publication is not available to the public yet, please enter in the password to view the models.
+            </p>
+            <p>
+                <input type = "password" name = "password"/>
+            </p>
+            <input type = "submit"/>
+            <div>
+                <p id = "errormsg">
+                </p>
+            </div>
+        </form>
+        <a href="#" id = "terriblefix"></a>
+    </div>
+</div>
