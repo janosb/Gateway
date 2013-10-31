@@ -16,23 +16,67 @@
 			font-size: 0.8em;
 			font-variant: small-caps;
 		}
+		#errormsg{
+			display:none;
+		}
+		#errormsg p, #searcherrormsg p{
+			color:red;
+			font-size: 16px;
+			text-align: center;
+		}
 	</style>
+	<script type="text/javascript">
+	$(document).ready(function(){
+		$("#search-form").submit(function(e){
+			console.log("hi");
+			if(validateSearchChars($("#minmass").val()) || validateSearchChars($("#maxmass").val()) || validateSearchChars($("#peaklum").val())){
+				e.preventDefault();
+				$("#errormsg").css("display","block");
+				return false;
+			} else{
+				$("#errormsg").css("display","none");
+				return true;
+			}
+		});
+	});
+	</script>
 {% endblock head %}
 
 {% block content %}
+<div class = "span10 offset3">
 	<h1>Spectra Search</h1>
-	<form action="/search/" method="get" class="form-horizontal">
-			{% for field in form %}
+	<form action="/odetta/search/" method="get" class="form-horizontal" id = "search-form">
+			<p>
+				For the fastest search, please enter in the most amount of fields possible. 
+			</p>
 			<div class="control-group">
-				<label class="control-label" for="id_{{field.html_name}}">{{field.label}}</label>
-				<div class="controls">
-					{{field}}
-				</div>
+				<p>
+					<label class="control-label" for="id_minmass">Minimum Mass: </label>
+					<input class="fields" id="minmass" name = "minmass" placeholder = "Leave blank for no min">
+				</p>
+				<p>
+					<label class="control-label" for="id_maxmass">Maximum Mass: </label>
+					<input class="fields" id="maxmass" name = "maxmass" placeholder = "Leave blank for no max">
+				</p>
+				<p>
+					<label class="control-label" for="id_maxlum">Peak Luminosity: </label>
+					<input class="fields" id="peaklum" name = "peaklum" placeholder = "Leave blank for 0">
+				</p>
+				<p>
+					<label class = "control-label" for="id_modeltype">Model Type: </label>
+					<input class = "fields" id = "modeltype" name = "modeltype" placeholder = "Ex: Delayed detonation">
+				</p>
 			</div>
-				{% if forloop.first %}
-					<hr/>
-				{% endif %}
-			{% endfor %}
+			<div id = "errormsg">
+				<p>
+					Incorrect Fields
+				</p>
+			</div>
+			<div id = "searcherrormsg">
+				<p>
+					{{error}}
+				</p>
+			</div>
 			<div class="control-group">
 				<div class="controls">
 					<input class="btn" type="submit" value="Search" />					
@@ -44,14 +88,15 @@
 	<div class="span12 results">
 		{% for result in results %}
 			<div class="result">
-				<a href="{% url 'odetta.views.plot' result.m_id %}">Entry {{result.m_id}}</a>
-				<small><a href="/plot/{{result.m_id}}/img/">img</a></small>
+				<a href="{% url 'odetta.views.plot' result.model.model_id %}">{{result.model.modelname}}</a>
+				<small><a href="{%	url 'odetta.views.plot_img' model_id=result.model.model_id time_step=0 mu_step=0 phi_step=0 %}">img</a></small>
 				<div class="details">
-					Mu: {{result.mu}}, Rho Max: {{result.rho_max}}, Ka Min: {{result.ka_min}}
+					<strong>Publication: {{result.pub.fullname}}</strong><br/>
+					Model Name: {{result.model.modelname}}, Mass: {{result.model.mass_wd}}
 				</div>
 			</div>
 		{% endfor %}
-		<div class="pagination pagination-centered">
+		<div class="pagination">
 			<ul>
 				<li><a href="?{{q_string}}&page=1">First</a></li>
 				{% if results.has_previous %}
@@ -90,4 +135,5 @@
 		</div>
 	</div>
 	{% endif %}
+</div>
 {% endblock content %}

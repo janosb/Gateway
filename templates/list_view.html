@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <style type="text/css">
+        .result a{
+            font-size: 18px;
+        }
+        .result{
+            margin:10px 0;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class = "span10 offset1">
+    <div class="row-fluid">        
+        <div class="span12 results">
+            {%for x in results%}
+                <div class="result">
+                    <a href="{{x.url}}">{{x.name}}</a>
+                    <div class="details">
+                        {{x.details}}
+                    </div>
+                </div>
+            {% endfor %}
+            <div class="pagination pagination-centered">
+                <ul>
+                    <li><a href="?{{q_string}}&page=1">First</a></li>
+                    {% if results.has_previous %}
+                    <li>
+                        <a href="?{{q_string}}&page={{results.previous_page_number}}">Prev</a>
+                    </li>
+                    {% else %}
+                    <li class="disabled">
+                        <a href="#">Prev</a>
+                    </li>
+                    {% endif %}
+
+                    {% for page in page_range %}
+                        {% if page == results.number %}
+                            <li class="active">
+                                <a href="?{{q_string}}&page={{page}}">{{page}}</a>
+                            </li>
+                        {% else %}
+                            <li>
+                                <a href="?{{q_string}}&page={{page}}">{{page}}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if results.has_next %}
+                    <li>
+                        <a href="?{{q_string}}&page={{ results.next_page_number }}">Next</a>
+                     </li>
+                    {% else %}
+                    <li class="disabled">
+                        <a href="#" class="disabled">Next</a>
+                    </li>       
+                    {% endif %}
+                    <li><a href="?{{q_string}}&page=99999">Last</a></li>
+                </ul>   
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

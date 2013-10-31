@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+
+{%block head%}
+    <script type="text/javascript" src="{% static 'js/d3.js' %}"></script>
+    <script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/graph.css' %}" />
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
+    <style type="text/css">
+        #slides{
+            width:30px;
+            margin:0;
+            text-align: center;
+        }
+        #currentmid{
+            display:none;
+        }
+        #graphOptions{
+            margin-bottom: 50px;
+        }
+        #matches-slider{
+            height: 10px;
+            margin: 10px 10px;
+        }
+        #opOptions{
+            margin-bottom:10px;
+        }
+    </style>
+    <script type="text/javascript">
+        var m_id_array = [];
+        var m_id;
+        var currSlide = 0;
+        $(document).ready(function(){
+            graphOverplot({{data|safe}});
+            {% for model in matched_models %}
+                m_id_array.push({{model.model_id}});
+            {% endfor %}
+            m_id = m_id_array[0];
+        });
+        $(function(){
+            $( "#matches-slider" ).slider({
+                value: 0,
+                min: 0,
+                max: 9,
+                slide: function( event, ui ){
+                    m_id = m_id_array[ui.value];
+                    getPlot(0,0,0);
+                    $("#slides").val(ui.value + 1);
+                },
+                change: function(event, ui){
+                    m_id = m_id_array[ui.value];
+                    getPlot(0,0,0);
+                    $("#slides").val(ui.value + 1);
+                    $("#image_download").attr("href","/odetta/plot/"+ m_id + "/0/0/0/img/?download=1");
+                },
+            });
+            $("#slides").change(function(){
+                $("#matches-slider").slider("option", "value", $(this).val().replace(/[a-zA-Z]/g, ""));
+                
+            });
+        });
+        function moveSlide(slide){
+            currSlide+=parseInt(slide);
+            if(currSlide < 0){
+                currSlide = 0;
+            }
+            else if(currSlide > 9){
+                currSlide = 9;
+            }
+            $("#matches-slider").slider("option", "value", currSlide);
+            $("#slides").val(currSlide + 1);
+        }
+        $("#slides").change(function(){
+            $("#matches-slider").slider("option", "value", $(this).val().replace(/[a-zA-Z]/g, ""));
+            
+        });
+    </script>
+{%endblock%}
+{% block content %}
+<div class = "span2">
+    <div class="well sidebar-nav">
+        <ul class="nav nav-list">
+            <li class="nav-header">Index</li>
+            <li><a id = "image_download" href="{% url 'odetta.views.plot_img' model_id=1 time_step=0 mu_step=0 phi_step=0 %}?download=1">Download Image</a></li>
+            <li><a href="#">Download Model</a></li>
+        </ul> 
+    </div>
+</div>
+<div class = "span10">
+    <div class="graph" id="graph" oncontextmenu="return false">
+        <h2>Fitted Graphs</h2>
+    </div>
+    <script type="text/javascript" src="{% static 'js/spectrum_graph.js' %}"></script>
+    <div id = "graphOptions">
+        <div id = "opOptions">
+            <h4>Overplot Options</h4>
+            <div class = "btn-group">
+                <button class = "btn lineBtn" onclick = "hideShow('line')">Hide Line</button>
+                <button class = "btn overplotBtn" onclick = "hideShow('overplot')">Hide Overplotted</button>
+            </div>
+        </div>
+        <div class="btn-group">
+            <button class="btn" href="#" onclick="moveSlide(-1)"><i class="icon-chevron-left"></i></button>
+            <input type="text" id="slides" value="1"/>
+            <button class="btn" href="#" onclick="moveSlide(1)"><i class="icon-chevron-right"></i></button>
+            <button class="btn restore" onclick = "restoreScale()">Rescale Graph</button>
+        </div>
+        <p>Different Matches:</p>
+        <div id="matches-slider" class = "sliders"></div>
+    </div>
+</div>
+{% endblock %}

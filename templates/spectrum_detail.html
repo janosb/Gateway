@@ -1,299 +1,269 @@
 {% extends "base.html" %}
+{% load staticfiles %}
 
 {% block head %}
-    <script type="text/javascript" src="/static/js/d3.js"></script>
-    <style type="text/css">
-        .graph {
-            font-size: 10px;
-        }
-        .plot {
-            fill: rgba(250, 250, 255, 0.6);
-        }
-        .grid .tick {
-            stroke: lightgrey;
-            opacity: 0.7;
-        }
-        .grid path {
-            stroke-width: 0;
-        }
-        .axis path, .axis line {
-            fill: none;
-            stroke: #000;
-            shape-rendering: crispEdges;
-        }
-        .x.axis path {
-            display: none;
-        }
-        .line {
-            fill: none;
-            stroke: steelblue;
-            stroke-width: 1.5px;
-        }
-        .zoom{
-            fill:rgba(175,175,175,0.25);
-            stroke:black;
-        }
+    <script type="text/javascript" src="{% static 'js/d3.js' %}"></script>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/graph.css' %}" />
+    <style type="text/css">        
         #details table{
             width:100%;
         }
         .span10 h1{
             text-align: center;
         }
+        #time, #muVal, #phiVal{
+            width:30px;
+            margin:0;
+            text-align: center;
+        }
+        #time-slider, #mu-slider{
+            height: 10px;
+            margin: 10px 10px;
+        }
+        .graph{
+            position:relative;
+        }
+        #loadingscreen{
+            top:0;
+            bottom:0;
+            left:0;
+            right:0;
+            position:absolute;
+            width:100%;
+            height:100%;
+            background-color: rgba(0,0,0,0.9);
+        }
+        #loadingscreen img{
+            margin:250px 50%;
+        }
+        #startFrame, #endFrame, #runAnimation, #loadData{
+            margin-bottom: 10px;
+        }
+        #runAnimation{
+            display:none;
+        }
+        #startFrame, #endFrame{
+            width:60px;
+        }
+        progress {
+            width:500px;
+            height:20px;
+            display:none;
+        }
+        progress::-webkit-progress-bar {
+            width:500px;
+            height:20px;
+        }
+        progress::-webkit-progress-value {
+            width:500px;
+            height:20px;
+        }
+        progress::-moz-progress-bar {
+            width:500px;
+            height:20px;
+        }
+        #opOptions{
+            display:none;
+        }
+        .hiddenOptions{
+            display:none;
+        }
     </style>
+    <script type="text/javascript">
+    $(document).ready(function(){
+        $("#time").val(parseFloat({{time_vals}}[0]).toFixed(1));
+        $("#muVal").val(parseFloat({{mu_vals}}[0]).toFixed(1));
+        $("#phiVal").val(parseFloat({{phi_vals}}[0]).toFixed(1));
+        $(".tabactive").show();
+        $("#grapharea a").click(function(e){
+            if($(this).parent("li[class~=disabled]").length == 0){
+                e.preventDefault();
+                $("#grapharea .active").removeClass("active");
+                $(this).parent("li").addClass("active");
+                showTab($(this).attr("href"));
+            }
+        });
+        $(".nav-list a").click(function(e){
+            if($(this).parent().attr("class") == "disabled"){
+                e.preventDefault();
+            }
+        });
+        function showTab(id){
+            $(".tabactive").removeClass("tabactive").hide();
+            current_doc = $(id).attr("id");
+            $(id).addClass("tabactive").show();
+            current_tab = $(".tabactive li.active").attr("data-input-type");
+            console.log($(id));
+            $(".inputarea:not(.tabactive)").hide();
+        }
+    });
+
+    var m_id = {{meta_data.model_id}};
+    $(function() {
+        // preloadData(0,100);
+        $( "#time-slider" ).slider({
+            value: 0,
+            min: 0,
+            max: {{time_max}},
+            slide: function( event, ui ){
+                getData(ui.value, currMu, currPhi);
+                $("#timeStep").val(ui.value);
+                $("#time").val(parseFloat({{time_vals}}[ui.value]).toFixed(1));
+            },
+            change: function(event, ui){
+                getData(ui.value, currMu, currPhi);
+                $("#timeStep").val(ui.value);
+                $("#time").val(parseFloat({{time_vals}}[ui.value]).toFixed(1));
+                $("#image_download").attr("href","/odetta/plot/{{meta_data.model_id}}/" + $("#timeStep").val() + "/" + $("#muStep").val() + "/" + $("#phiStep").val() + "/img/?download=1");
+            },
+        });
+        $( "#mu-slider" ).slider({
+            value: 0,
+            min: 0,
+            max: {{mu_max}},
+            slide: function( event, ui ){
+                getData(currTime, ui.value, currPhi);
+                $("#muStep").val(ui.value);
+                $("#muVal").val(parseFloat({{mu_vals}}[ui.value]).toFixed(1));
+            },
+            change: function(event, ui){
+                getData(currTime, ui.value, currPhi);
+                $("#muStep").val(ui.value);
+                $("#muVal").val(parseFloat({{mu_vals}}[ui.value]).toFixed(1));
+                $("#image_download").attr("href","/odetta/plot/{{meta_data.model_id}}/" + $("#timeStep").val() + "/" + $("#muStep").val() + "/" + $("#phiStep").val() + "/img/?download=1");
+            },
+        });
+        $( "#phi-slider" ).slider({
+            value: 0,
+            min: 0,
+            max: {{phi_max}},
+            slide: function( event, ui ){
+                getData(currTime, currMu, ui.value);
+                $("#muStep").val(ui.value);
+                $("#muVal").val(parseFloat({{phi_vals}}[ui.value]).toFixed(1));
+            },
+            change: function(event, ui){
+                getData(currTime, currMu, ui.value);
+                $("#muStep").val(ui.value);
+                $("#muVal").val(parseFloat({{phi_vals}}[ui.value]).toFixed(1));
+                $("#image_download").attr("href","/odetta/plot/{{meta_data.model_id}}/" + $("#timeStep").val() + "/" + $("#muStep").val() + "/" + $("#phiStep").val() + "/img/?download=1");
+            },
+        });
+        $("#time").change(function(){
+            $("#time-slider").slider("option", "value", $(this).val().replace(/[a-zA-Z]/g, ""));
+            
+        });
+        $("#muVal").change(function(){
+            $("#mu-slider").slider("option", "value", $(this).val().replace(/[a-zA-Z]/g, ""));
+        });
+        $("#phiVal").change(function(){
+            $("#phi-slider").slider("option", "value", $(this).val().replace(/[a-zA-Z]/g, ""));
+        });
+    });
+    </script>
 {% endblock head %}
 
-{% block nav %}
-    <li class="nav-header">Index</li>
-    <li><a href="#graph">Graph</a></li>
-    <li><a href="#details">Details</a></li>
-    <li><a href="/plot/{{meta_data.m_id}}/img/?download=1">Download Image</a></li>
-{% endblock nav %}
-
 {% block content %}
-    <h1>Plot {{meta_data.m_id}}</h1>
-    <div class="graph" id="graph" oncontextmenu="return false">
-        <h2>Spectrum Graph</h2>
 
+<div class="span2">
+    <div class="well sidebar-nav">
+        <ul class="nav nav-list">
+            <li class="nav-header">Index</li>
+            <li><a href="#graph">Graph</a></li>
+            <li><a href="#details">Details</a></li>
+            <li><a id = "image_download" href="{% url 'odetta.views.plot_img' model_id=meta_data.model_id time_step=0 mu_step=0 phi_step=0 %}?download=1">Download Image</a></li>
+            <li><a href="{% url 'odetta.views.get_zip_file' %}">Download Model</a></li>
+            <li><a href="{% url 'odetta.views.upload' model_id=meta_data.model_id %}" class = "popup">Upload File</a></li>
+        </ul> 
     </div>
-    <script type="text/javascript">
-        var spectrum_data = {{data|safe}};
-        var flux_data = spectrum_data.flux_data;
-        margin = {
-            top: 20,
-            right: 50,
-            bottom: 20,
-            left: 50
-        };
-
-        width = 1000 - margin.left - margin.right;
-        height = 500 - margin.top - margin.bottom;
-
-        var x = d3.scale.linear()
-            .domain(d3.extent(flux_data, function (d) {
-                return d.wavelength;
-            }))
-            .range([0, width]);
-
-        var y = d3.scale.linear()
-            .domain(d3.extent(flux_data, function (d) {
-                return d.lum;
-            }))
-            .range([height, 0]);
-
-        var line = d3.svg.line()
-            .x(function (d) {
-                return x(d.wavelength);
-            })
-            .y(function (d) {
-                return y(d.lum);
-            });
-
-        var zoom = d3.behavior.zoom()
-            .x(x)
-            .y(y)
-            .on("zoom", function(){
-                if(d3.event.sourceEvent.which!=3){
-                    refresh();
-                }
-            });
-        var zoomRect = true;
-        svg = d3.select('.graph')
-            .append("svg:svg")
-            .attr('width', width + margin.left + margin.right)
-            .attr('height', height + margin.top + margin.bottom)
-            .append("svg:g")
-            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-            .call(zoom)
-            .append("g")
-            .on("mouseup", function(){
-                d3.select('body').style("cursor", null);
-            })
-            .on("mousedown", function() {
-                d3.select('body').style("cursor", "move");
-                if (d3.event.which != 3) return;
-                var e = this,
-                    origin = d3.mouse(e),
-                    rect = svg.append("rect").attr("class", "zoom");
-                d3.select("body").classed("noselect", true);
-                origin[0] = Math.max(0, Math.min(width, origin[0]));
-                origin[1] = Math.max(0, Math.min(height, origin[1]));
-                d3.select(window)
-                    .on("mousemove.zoomRect", function() {
-                        var m = d3.mouse(e);
-                        m[0] = Math.max(0, Math.min(width, m[0]));
-                        m[1] = Math.max(0, Math.min(height, m[1]));
-                        rect.attr("x", Math.min(origin[0], m[0]))
-                            .attr("y", Math.min(origin[1], m[1]))
-                            .attr("width", Math.abs(m[0] - origin[0]))
-                    .attr("height", Math.abs(m[1] - origin[1]));
-                })
-                .on("mouseup.zoomRect", function() {
-                    d3.select(window).on("mousemove.zoomRect", null).on("mouseup.zoomRect", null);
-                    d3.select("body").classed("noselect", false);
-                    var m = d3.mouse(e);
-                    m[0] = Math.max(0, Math.min(width, m[0]));
-                    m[1] = Math.max(0, Math.min(height, m[1]));
-                    if (m[0] !== origin[0] && m[1] !== origin[1]) {
-                        zoom.x(x.domain([origin[0], m[0]].map(x.invert).sort(function(a,b){return a > b;})))
-                            .y(y.domain([origin[1], m[1]].map(y.invert).sort(function(a,b){return a > b;})));
-                    }
-                    rect.remove();
-                    refresh();
-                }, true);
-            d3.event.stopPropagation();
-        });
-
-        svg.append("svg:rect")
-            .attr("width", width)
-            .attr("height", height)
-            .attr("class", "plot");
-
-        var make_x_axis = function () {
-            return d3.svg.axis()
-            .scale(x)
-            .orient("bottom");
-        };
-
-        var make_y_axis = function () {
-            return d3.svg.axis()
-            .scale(y)
-            .orient("left");
-        };
-
-        var xAxis = d3.svg.axis()
-            .scale(x)
-            .orient("bottom");
-
-        svg.append("svg:g")
-            .attr("class", "x axis")
-            .attr("transform", "translate(0, " + height + ")")
-            .call(xAxis);
-
-        var yAxis = d3.svg.axis()
-            .scale(y)
-            .orient("left")
-            .tickFormat(function(d){
-                return d.toExponential(1);
-            });
-
-        svg.append("g")
-            .attr("class", "y axis")
-            .call(yAxis);
-
-        svg.append("g")
-            .attr("class", "x grid")
-            .attr("transform", "translate(0," + height + ")")
-            .call(make_x_axis()
-                .tickSize(-height, 0, 0)
-                .tickFormat(""));
-
-        svg.append("g")
-            .attr("class", "y grid")
-            .call(make_y_axis()
-                .tickSize(-width, 0, 0)
-                .tickFormat(""));
-
-        var clip = svg.append("svg:clipPath")
-            .attr("id", "clip")
-            .append("svg:rect")
-            .attr("x", 0)
-            .attr("y", 0)
-            .attr("width", width)
-            .attr("height", height);
-
-        var chartBody = svg.append("g")
-            .attr("clip-path", "url(#clip)");
-
-
-        chartBody.append("g")
-            .attr("id","circles")
-
-        chartBody.append("svg:path")
-            .datum(flux_data)
-            .attr("class", "line")
-            .attr("d", line);
-
-        function refresh() {
-            // console.log(d3.event.translate);
-            // console.log(d3.event.scale);
-            svg.select(".x.axis").call(xAxis);
-            svg.select(".y.axis").call(yAxis);
-            svg.select(".x.grid")
-                .call(make_x_axis()
-                    .tickSize(-height, 0, 0)
-                    .tickFormat(""));
-            svg.select(".y.grid")
-                .call(make_y_axis()
-                    .tickSize(-width, 0, 0)
-                    .tickFormat(""));
-            svg.select(".line")
-                .attr("class", "line")
-                .attr("d", line);
-            if(zoom.scale() > 10){
-                showCircles();
-            } else{
-                d3.select("#circles").selectAll("circle")
-                    .remove();
-            }
-        }
-
-        function restore(){
-            zoom.x(x.domain(d3.extent(flux_data, function (d) {
-                    return d.wavelength;
-                }))
-                .range([0, width]))
-                .y(y.domain(d3.extent(flux_data, function (d) {
-                    return d.lum;
-                }))
-                .range([height, 0]));
-            refresh();
-        }
-
-        function showCircles(){
-            var circles = d3.select("#circles").selectAll("circle")
-                .data(flux_data);
-            
-            circles.enter()
-                .append("circle")
-                .attr("r",3)
-                .attr("stroke","black")
-                .attr("stroke-width","1px")
-                .attr("fill","teal")
-                .attr("cx",function(d){
-                    return x(d.wavelength);
-                })
-                .attr("cy",function(d){
-                    return y(d.lum);
-                });
-
-            circles.attr("cx",function(d){
-                return x(d.wavelength);
-            })
-            .attr("cy",function(d){
-                return y(d.lum);
-            });
-        }
-    </script>
-    <div id = "options">
-        <button id = "restore" class="btn" onclick = "restore()">Restore to Default</button>
+    <div class = "well">
+        <h4>Publication Summary</h4>
+        <p><a href = "{{url}}" target = "_blank">Publication Url</a></p>
+        <p>{{summary}}</p>
     </div>
-    <div id="details">
-        <h2>Spectrum Details</h2>
-        <table class="table table-striped table-hover table-condensed">
-            <thead>
-                <tr>
-                    <th>Attribute</th>
-                    <th>Value</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for detail in details %}
-                <tr>
-                    <td>{{detail.0|capfirst}}</td>
-                    <td>{{detail.1}}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+</div>
+<div class = "span10" id = "grapharea">
+    <ul class = "nav nav-tabs">
+        <li class = "active"><a href="#{{meta_data.modelname}}-fluxvals" data-toggle = "tab">Flux Graphs</a></li>
+        <li><a href="#{{meta_data.modelname}}-lightcurve" data-toggle = "tab">Light Curves</a></li>
+    </ul>
+    <div class = "tab-content">
+        <div class = "tab-pane tab tabactive" id = "{{meta_data.modelname}}-fluxvals">
+            <h1>{{meta_data.modelname}}</h1>
+            <div class="graph" id="graph" oncontextmenu="return false">
+                <h2>Spectrum Graph</h2>
+            </div>
+            <script type="text/javascript" src="{% static 'js/spectrum_graph.js' %}"></script>
+            <div id = "options" class="well">
+                <div id="graphOptions">
+                    <div id = "opOptions">
+                        <h4>Overplot Options</h4>
+                        <div class = "btn-group">
+                            <button class = "btn lineBtn" onclick = "hideShow('line')">Hide Line</button>
+                            <button class = "btn overplotBtn" onclick = "hideShow('overplot')">Hide Overplotted</button>
+                        </div>
+                    </div>
+                    <h4>Simulation Options</h4>
+                    <div class="btn-group">
+                        <button class="btn" href="#" onclick="moveFrame(-1, 0, 0)"><i class="icon-chevron-left"></i></button>
+                        <input type="text" id="time" value="0"/>
+                        <button class="btn" href="#" onclick="moveFrame(1, 0, 0)"><i class="icon-chevron-right"></i></button>
+                        <button class="btn restore" onclick = "restoreScale()">Rescale Graph</button>
+                        <button class="btn" onclick = "preloadData('time',$('#muStep').val(),$('#phiStep').val())">Get All Time For Current State</button>
+                    </div>
+                    <p>Time:</p>
+                    <div id="time-slider" class = "sliders"></div>
+                    {% if meta_data.has_mu %}
+                        <div class="btn-group">
+                            <button class="btn" href="#" onclick="moveFrame(0, -1, 0)"><i class="icon-chevron-left"></i></button>
+                            <input type="text" id="muVal" value="0"/>
+                            <button class="btn" href="#" onclick="moveFrame(0, 1, 0)"><i class="icon-chevron-right"></i></button>
+                            <button class="btn restore" onclick = "restoreScale()">Rescale Graph</button>
+                            <button class="btn" onclick = "preloadData('mu',$('#timeStep').val(),$('#phiStep').val())">Get All Mu For Current State</button>
+                        </div>
+                        <p>Mu:</p>
+                        <div id="mu-slider" class = "sliders"></div>
+                    {% endif %}
+                    {% if meta_data.has_phi %}
+                        <div class="btn-group">
+                            <button class="btn" href="#" onclick="moveFrame(0, 0, -1)"><i class="icon-chevron-left"></i></button>
+                            <input type="text" id="phiVal" value="0"/>
+                            <button class="btn" href="#" onclick="moveFrame(0, 0, 1)"><i class="icon-chevron-right"></i></button>
+                            <button id = "restore" class="btn" onclick = "restoreScale()">Rescale Graph</button>
+                            <button class="btn" onclick = "preloadData('phi',$('#time').val(), $('#muStep').val())">Get All Phi For Current State</button>
+                        </div>
+                        <p>Angle:</p>
+                        <div id="phi-slider" class = "sliders"></div>
+                    {% endif %}
+                    <input class = "hiddenOptions" id = "timeStep" value = "0"/>
+                    <input class = "hiddenOptions" id = "muStep" value = "0"/>
+                    <input class = "hiddenOptions" id = "phiStep" value = "0"/>
+                </div>
+            </div>
+            <div id="details">
+                <h2>Spectrum Details</h2>
+                <table class="table table-striped table-hover table-condensed">
+                    <thead>
+                        <tr>
+                            <th>Attribute</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for detail in details %}
+                        <tr>
+                            <td>{{detail.0|capfirst}}</td>
+                            <td>{{detail.1}}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class = "tab-pane tab" id = "{{meta_data.modelname}}-lightcurve">
+            <h1>Lightcurve Data</h1>
+        </div>
     </div>
+    
+</div>
 {% endblock content %}

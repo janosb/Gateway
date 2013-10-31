@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block head %}
+	<style type="text/css">
+	form .form-actions{
+		text-align: right;
+	}
+	form label{
+		margin-left:1em;
+	}
+	.form-container{
+		padding:1em 2em;
+	}
+	</style>
+	<script type="text/javascript">
+	</script>
+{% endblock head %}
+
+{% block content %}
+	<div class="span10 offset1">
+		<h1>Spectrum Fitter</h1>
+		<form action="{% url 'odetta.views.fitter' %}" method="post" enctype="multipart/form-data" id = "fitterform">
+			{% csrf_token %}
+			<div class="form-container">
+				<label for="file_upload">
+					File to fit: <input type="file" id="file_upload" name="file"/>
+				</label>
+				<label class="radio">
+					<input type="radio" name="fitType" value="0" checked>
+					Try all types
+				</label>
+				<label class="radio">
+					<input type="radio" name="fitType" value="1">
+					SNIa (Single Degenerate) Explosion
+				</label>
+				<label class="radio">
+					<input type="radio" name="fitType" value="2">
+					SNII Explosion
+				</label>
+				<label class="radio">
+					<input type="radio" name="fitType" value="3">
+					AGN Accretion
+				</label>
+				<label class="radio">
+					<input type="radio" name="fitType" value="4">
+					BH-BH Merger
+				</label>
+			</div>
+
+			<div class="form-actions">
+				<button type="submit" class="btn btn-primary">Find Spectra</button>
+				<button type="button" class="btn">Cancel</button>
+			</div>
+		</form>
+	</div>
+{% endblock content %}
