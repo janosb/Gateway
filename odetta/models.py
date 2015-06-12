@@ -20,6 +20,7 @@ class Publications(models.Model):
     class Meta:
         db_table = 'publications'
 
+
 class Chi2Test(models.Model):
     fname = models.CharField(max_length=200, blank=True)
     chi2dof = models.FloatField(null=True, blank=True)
@@ -29,6 +30,7 @@ class Chi2Test(models.Model):
 
     class Meta:
         db_table = 'chi2test'
+
 
 class Spectra(models.Model):
     model_id = models.IntegerField()
@@ -40,6 +42,7 @@ class Spectra(models.Model):
     
     class Meta:
         db_table = 'spectra'
+
 
 class Fluxvals(models.Model):
     spec_id = models.IntegerField(primary_key=True)
@@ -87,6 +90,7 @@ class MetaDd2D(models.Model):
     def has_phi(self):
         return Spectra.objects.filter(model_id=self.model_id).distinct("phi").count() > 1
 
+
 class MetaNsm1D(models.Model):
     pub_id = models.IntegerField()
     model_id = models.IntegerField(primary_key=True)
@@ -99,6 +103,19 @@ class MetaNsm1D(models.Model):
 
     class Meta:
         db_table = 'meta_nsm1d'
+
+
+class MetaPi1D(models.Model):
+    pub_id = models.IntegerField()
+    model_id = models.IntegerField(primary_key=True)
+    modelname = models.CharField(max_length=15, blank=True)
+    t_expl = models.FloatField(null=True, blank=True)
+    mass = models.FloatField(null=True, blank=True)
+    star_type = models.CharField(max_length=2)
+
+    class Meta:
+        db_table = 'meta_pi1d'
+
 
 class LightCurves(models.Model):
     model_id = models.IntegerField()
@@ -131,14 +148,18 @@ class LCVals(models.Model):
     class Meta:
         db_table = 'lcvals'
 
+
 def get_time_max(model_id):
     return Spectra.objects.filter(model_id=model_id).values("t_expl").distinct("t_expl").order_by("t_expl").count() - 1
+
 
 def get_mu_max(model_id):
     return Spectra.objects.filter(model_id=model_id).values("mu").distinct("mu").order_by("-mu").count() - 1
 
+
 def get_phi_max(model_id):
     return Spectra.objects.filter(model_id=model_id).values("phi").distinct("phi").order_by("-phi").count() - 1
+
 
 def get_time_val(model_id):
     times = []
@@ -146,11 +167,13 @@ def get_time_val(model_id):
         times.append(time["t_expl"]) 
     return times
 
+
 def get_mu_val(model_id):
     mu_steps = []
     for mu in Spectra.objects.filter(model_id = model_id).values("mu").distinct("mu").order_by("mu"):
         mu_steps.append(mu["mu"]) 
     return mu_steps
+
 
 class SearchForm(forms.Form):
     min_mass = forms.IntegerField(required=False, label='Minimum Mass')
