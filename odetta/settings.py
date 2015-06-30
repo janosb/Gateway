@@ -63,7 +63,7 @@ HOME_URL = '/odetta'
 
 DATA_ROOT = STATIC_ROOT
 
-DATA_URL = '/public_data/'
+DATA_DIR = '/public_data/'
 
 # Additional locations of static files
 STATICFILES_DIRS = (

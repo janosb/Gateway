@@ -18,7 +18,7 @@
             {%for x in results%}
                 <div class="result">
                     <a href="{{x.url}}">{{x.name}}</a>{% if x.data_urls %} ( download raw data: {% for url in x.data_urls %}
-                    <a href="{{ data_dir }}{{url.0}}">{{url.1}}</a> {% endfor %}){% endif %}
+                    <a href="{% url 'odetta.views.download' url.0 %}">{{url.1}}</a> {% endfor %}){% endif %}
                     <div class="details">
                         {{x.details}}
                     </div>

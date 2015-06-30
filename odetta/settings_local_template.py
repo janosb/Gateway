@@ -10,19 +10,19 @@ DATABASES = {
 }
 
 # turn off extra url prefix
-FORCE_SCRIPT_NAME = ''
+#FORCE_SCRIPT_NAME = ''
 
 # re-route to local static files
-STATIC_URL = '/static/'
+#STATIC_URL = '/static/'
 
 # where to upload files
-STATIC_ROOT = ''
+#STATIC_ROOT = ''
 
 # where "home" will point
-HOME_URL = '/'
+#HOME_URL = '/'
 
 # absolute path to data
-DATA_ROOT = ''
+#DATA_ROOT = ''
 
 # put data into local /public_data/ directory
-DATA_DIR = '/public_data/'
+#DATA_DIR = '/public_data/'
