@@ -1,4 +1,4 @@
-Django==1.5.1
+Django==1.8.2
 ipython==0.13.2
 matplotlib==1.4.3
 psycopg2==2.5
