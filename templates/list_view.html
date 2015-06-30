@@ -17,8 +17,8 @@
         <div class="span12 results">
             {%for x in results%}
                 <div class="result">
-                    <a href="{{x.url}}">{{x.name}}</a> ( download raw data: {% for url in x.data_urls %}
-                    <a href="/public_data/{{url.0}}">{{url.1}}</a> {% endfor %})
+                    <a href="{{x.url}}">{{x.name}}</a>{% if x.data_urls %} ( download raw data: {% for url in x.data_urls %}
+                    <a href="{{ data_dir }}{{url.0}}">{{url.1}}</a> {% endfor %}){% endif %}
                     <div class="details">
                         {{x.details}}
                     </div>

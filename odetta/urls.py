@@ -25,14 +25,8 @@ urlpatterns = patterns('',
     url(r'^fitter/results/$',fitter),
     url(r'^download/$',get_zip_file),
     url(r'^public_data/(?P<filename>[a-zA-Z_.]+)$', download),
-    # Examples:
-    #url(r'^$', 'odetta.views.home', name='home'),
-    #url(r'^odetta/', include('odetta.foo.urls')),
 
-    # Uncomment the admin/doc line below to enable admin documentation:
-    # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
-    # Uncomment the next line to enable the admin:
     url(r'^admin/', include(admin.site.urls)),
     url(r'^browse/$', browse),
     url(r'^browse/models/(?P<pub_id>\d+)/$', browse),

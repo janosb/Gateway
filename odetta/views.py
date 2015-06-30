@@ -12,7 +12,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.files import File
-from odetta.settings import FITS_ROOT, HOME_URL, DATA_DIR, TEMPPASSWORD
+from odetta.settings import FITS_ROOT, HOME_URL, DATA_DIR, DATA_ROOT, TEMPPASSWORD
 import zipfile
 import glob,os
 import re
@@ -64,24 +64,23 @@ def browse(request, pub_id=None):
         breadcrumbs = [{"name": "Publications", "url": reverse("odetta.views.browse"), "active": True}]
         for publication in data:
             details = ""
-            data_urls = publication.data_urls.split(",")
-            print data_urls
-            data_url_names = [url.split(".")[0] for url in data_urls]
-            print data_url_names
-            data_urls_tuple = zip(data_urls, data_url_names)
             for field_name in publication._meta.get_all_field_names():
                 field = publication._meta.get_field(field_name)
                 if field_name not in ['modeltype','fullname','is_public','shortname',
                                       'pub_id', 'url', 'summary', 'metatype', 'data_urls']:
                     details += "%s: %s; " % (field.verbose_name, publication.__dict__[field_name])
-            listing.append({
+            listing_dict = {
                 "obj": publication,
                 "name": publication.fullname,
-                "data_urls": data_urls_tuple,
                 "url": reverse("odetta.views.browse", kwargs={"pub_id": publication.pub_id}),
                 "details": details
-            })
-
+            }
+            data_urls = publication.data_urls.split(",")
+            data_url_names = [url.split(".")[0] for url in data_urls]
+            if publication.data_urls != u'':
+                listing_dict["data_urls"] = zip(data_urls, data_url_names)
+            listing.append(listing_dict)
+    print listing
     MAX_ENTRIES = 6
 
     page = request.GET.get("page", 1)
@@ -110,7 +109,7 @@ def browse(request, pub_id=None):
 
     return render_to_response('list_view.html',
                               {"results": results, "q_string": query_string, "page_range": page_range,
-                               "breadcrumbs": breadcrumbs, "home_url": HOME_URL})
+                               "breadcrumbs": breadcrumbs, "home_url": HOME_URL, "data_dir": DATA_DIR})
 
 def search_models(request):
     results = []
@@ -522,7 +521,7 @@ def download(request, filename):
         print "no match for filename "+filename
         return HttpResponse()
     try:
-        wrapper = FileWrapper(file(DATA_DIR+filename))
+        wrapper = FileWrapper(file(DATA_ROOT+DATA_DIR+filename))
         response = HttpResponse(wrapper, content_type='multipart/x-gzip')
         response['Content-Disposition'] = 'attachment; filename=\"'+filename+'\"'
     except IOError:

@@ -80,7 +80,7 @@
             <div class="container">
                 <a class="brand" href="#">Odetta</a>
                 <ul class="nav">
-                    <li><a href="{{ home_url }}">Home</a></li>
+                    <li><a href="{% url 'odetta.views.home_page' %}">Home</a></li>
                     <li><a href="{% url 'odetta.views.browse' %}">Browse Spectra</a></li>
                     <li><a href="{% url 'odetta.views.search_models' %}">Search Spectra</a></li>
                     <li><a href="{% url 'odetta.views.fitter' %}">Fitter</a></li>

@@ -21,5 +21,8 @@ STATIC_ROOT = ''
 # where "home" will point
 HOME_URL = '/'
 
+# absolute path to data
+DATA_ROOT = ''
+
 # put data into local /public_data/ directory
-DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')) + '/public_data/'
+DATA_DIR = '/public_data/'
