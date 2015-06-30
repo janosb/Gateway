@@ -1,5 +1,5 @@
 Django==1.5.1
 ipython==0.13.2
-matplotlib==1.2.1
+matplotlib==1.4.3
 psycopg2==2.5
 simplejson==3.3.0
