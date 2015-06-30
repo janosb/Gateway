@@ -1,0 +1,4 @@
+DD	2	2012-07-28	Kasen,D.,Ropke,F.K., & Woosley, S.E. 2009, Nature, 460, 869	Ia	1	t	Delayed Detonation Type Ia (2D)	Kasen2009	meta_dd2d	This is a sample summary, we will add some comments here about each model type and perhaps a link to the publication	http://adsabs.harvard.edu/abs/2009Natur.460..869K   test.tar.gz,test1.tar.gz
+NSM	1	2013-06-27	Barnes, J. & Kasen, D., 2013, ApJ,	NSM	2	f	Neutron Star Merger (1D)	Barnes2013	meta_nsm1d	This is a sample summary, we will add some comments here about each model type and perhaps a link to the publication	http://adsabs.harvard.edu/abs/2013arXiv1303.5787B   ns_merger_spectra.tar.gz
+PI	1	2013-06-27	Kasen, D., Woosley, S. & Heger, A., 2011, ApJ, 734.2, 102, pp. 13	PI	3	f	Pair Instability SN (1D)	Kasen2011	meta_pi1d	This is a sample summary, we will add some comments here about each model type and perhaps a link to the publication	http://adsabs.harvard.edu/abs/2011ApJ...734..102K   pair_he.tar.gz,pair_sne.tar.gz
+
