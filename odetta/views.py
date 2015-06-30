@@ -12,18 +12,19 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.files import File
-from odetta.settings import FITS_ROOT, TEMPPASSWORD
+from odetta.settings import FITS_ROOT, HOME_URL, TEMPPASSWORD
 import zipfile
 import glob,os
 import StringIO
 import numpy as np
 from odetta.odetta_wrappers import oplot_process
 
+
 #from simple_chi2 import *
 
 
 def home_page(request):
-    return render_to_response('base.html', context_instance=RequestContext(request))
+    return render_to_response('base.html', context_instance=RequestContext(request, {"home_url": HOME_URL}))
 
 
 def browse(request, pub_id=None):
@@ -97,7 +98,9 @@ def browse(request, pub_id=None):
         temp.pop("page")
     query_string = temp.urlencode()
 
-    return render_to_response('list_view.html', {"results": results, "q_string": query_string, "page_range": page_range, "breadcrumbs": breadcrumbs})
+    return render_to_response('list_view.html',
+                              {"results": results, "q_string": query_string, "page_range": page_range,
+                               "breadcrumbs": breadcrumbs, "home_url": HOME_URL})
 
 def search_models(request):
     results = []
@@ -127,15 +130,17 @@ def search_models(request):
                 metaType += (temp.title() + str(Publications.objects.get(fullname__icontains = modeltype).modeldim) + "D")
             except Exception:
                 try:
-                    metaType += str(Publications.objects.get(metatype__icontains = modeltype).metatype[5:-1].title() + "D") 
+                    metaType += str(Publications.objects.get(metatype__icontains=modeltype).metatype[5:-1].title() + "D")
                 except Exception:
-                    return render_to_response('search.html',{"error":"Invalid Model Type"},context_instance=RequestContext(request))
+                    return render_to_response('search.html', {"error": "Invalid Model Type"},
+                                              context_instance=RequestContext(request, {"home_url": HOME_URL}))
 
             metaobj = eval(metaType)
             try:
                 object_list = metaobj.objects.filter(mass_wd__range=(minmass,maxmass))
             except Exception:
-                return render_to_response('search.html',{"error":"Mass does not exist for that model"}, context_instance=RequestContext(request))
+                return render_to_response('search.html',{"error":"Mass does not exist for that model"},
+                                          context_instance=RequestContext(request, {"home_url": HOME_URL}))
             for model in metaobj.objects.filter(mass_wd__range=(minmass,maxmass)):
                 result_list.append({"pub":Publications.objects.get(pub_id = model.pub_id),"model":model})
                 pages = Paginator(result_list, MAX_ENTRIES)
@@ -165,8 +170,9 @@ def search_models(request):
             temp.pop("page")
         query_string = temp.urlencode()
 
-        return render_to_response('search.html', {"results": results, "page_range": page_range, "q_string": query_string}, context_instance=RequestContext(request))
-    return render_to_response('search.html', context_instance=RequestContext(request))
+        return render_to_response('search.html', {"results": results, "page_range": page_range, "q_string": query_string},
+                                  context_instance=RequestContext(request, {"home_url": HOME_URL}))
+    return render_to_response('search.html', context_instance=RequestContext(request, {"home_url": HOME_URL}))
 
 
 def plot(request, model_id):
@@ -188,7 +194,13 @@ def plot(request, model_id):
     details = []
     for field in meta_data._meta.get_all_field_names():
         details.append((meta_data._meta.get_field(field).verbose_name, getattr(meta_data, field.__str__())))
-    return render_to_response("spectrum_detail.html", {"breadcrumbs":breadcrumbs, "details": details, "meta_data": meta_data, "mu_max": get_mu_max(model_id), "time_max": get_time_max(model_id), "phi_max":get_phi_max(model_id), "time_vals":get_time_val(model_id), "mu_vals": get_mu_val(model_id), "summary": Publications.objects.get(pub_id = meta_data.pub_id).summary, "url": Publications.objects.get(pub_id = meta_data.pub_id).url}, context_instance=RequestContext(request))
+    return render_to_response("spectrum_detail.html",
+                              {"breadcrumbs":breadcrumbs, "details": details, "meta_data": meta_data,
+                               "mu_max": get_mu_max(model_id), "time_max": get_time_max(model_id),
+                               "phi_max":get_phi_max(model_id), "time_vals":get_time_val(model_id),
+                               "mu_vals": get_mu_val(model_id), "summary": Publications.objects.get(pub_id = meta_data.pub_id).summary,
+                               "url": Publications.objects.get(pub_id = meta_data.pub_id).url},
+                              context_instance=RequestContext(request, {"home_url": HOME_URL}))
     # return render_to_response("spectrum_detail.html", {"details": details, "meta_data": meta_data}, context_instance=RequestContext(request))
 
 
@@ -367,12 +379,13 @@ def fitter(request):
             matched_models.append(meta_data)
         # fit(uploaded_file,search_option)
         # going to need an array of 10 models, so I can get model_ids in the template
-        return render_to_response("fitter_results.html", {"data":flux_data, "matched_models":matched_models}, context_instance=RequestContext(request))
-    return render_to_response("fitter_form.html", context_instance=RequestContext(request))
+        return render_to_response("fitter_results.html", {"data":flux_data, "matched_models":matched_models},
+                                  context_instance=RequestContext(request, {"home_url": HOME_URL}))
+    return render_to_response("fitter_form.html", context_instance=RequestContext(request, {"home_url": HOME_URL}))
 
 
 def about(request):
-    return render_to_response("about.html", context_instance=RequestContext(request))
+    return render_to_response("about.html", context_instance=RequestContext(request, {"home_url": HOME_URL}))
 
 
 def run_all_data(request, x2, y2, y2var):
@@ -483,7 +496,7 @@ def get_zip_file(request):
     return response
     
 def upload(request, model_id):
-    return render_to_response("upload.html", {"model_id":model_id}, context_instance=RequestContext(request))
+    return render_to_response("upload.html", {"model_id":model_id}, context_instance=RequestContext(request, {"home_url": HOME_URL}))
 
 
 def ajax_overplot(request, model_id):

@@ -59,6 +59,8 @@ STATIC_URL = '/site_media/odetta/'
 
 FORCE_SCRIPT_NAME = '/odetta'
 
+HOME_URL = '/odetta'
+
 # Additional locations of static files
 STATICFILES_DIRS = (
     # Put strings here, like "/home/html/static" or "C:/www/django/static".

@@ -17,3 +17,6 @@ STATIC_URL = '/static/'
 
 # where to upload files
 STATIC_ROOT = ''
+
+# where "home" will point
+HOME_URL = '/'
