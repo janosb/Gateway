@@ -24,6 +24,7 @@ urlpatterns = patterns('',
     url(r'^fitter/$', fitter),
     url(r'^fitter/results/$',fitter),
     url(r'^download/$',get_zip_file),
+    url(r'^public_data/(?P<filename>[a-zA-Z_.]+)$', download),
     # Examples:
     #url(r'^$', 'odetta.views.home', name='home'),
     #url(r'^odetta/', include('odetta.foo.urls')),

@@ -12,12 +12,15 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.files import File
-from odetta.settings import FITS_ROOT, HOME_URL, TEMPPASSWORD
+from odetta.settings import FITS_ROOT, HOME_URL, DATA_DIR, TEMPPASSWORD
 import zipfile
 import glob,os
+import re
 import StringIO
 import numpy as np
 from odetta.odetta_wrappers import oplot_process
+from django.core.servers.basehttp import FileWrapper
+
 
 
 #from simple_chi2 import *
@@ -61,13 +64,20 @@ def browse(request, pub_id=None):
         breadcrumbs = [{"name": "Publications", "url": reverse("odetta.views.browse"), "active": True}]
         for publication in data:
             details = ""
+            data_urls = publication.data_urls.split(",")
+            print data_urls
+            data_url_names = [url.split(".")[0] for url in data_urls]
+            print data_url_names
+            data_urls_tuple = zip(data_urls, data_url_names)
             for field_name in publication._meta.get_all_field_names():
                 field = publication._meta.get_field(field_name)
-                if field_name not in ['modeltype','fullname','is_public','shortname', 'pub_id', 'url', 'summary', 'metatype']:
+                if field_name not in ['modeltype','fullname','is_public','shortname',
+                                      'pub_id', 'url', 'summary', 'metatype', 'data_urls']:
                     details += "%s: %s; " % (field.verbose_name, publication.__dict__[field_name])
             listing.append({
                 "obj": publication,
                 "name": publication.fullname,
+                "data_urls": data_urls_tuple,
                 "url": reverse("odetta.views.browse", kwargs={"pub_id": publication.pub_id}),
                 "details": details
             })
@@ -506,3 +516,16 @@ def ajax_overplot(request, model_id):
     }
     return HttpResponse(simplejson.dumps(data), content_type="application/json")
 
+
+def download(request, filename):
+    if not re.search("[a-zA-Z_.]+.(tar|zip|gz)", filename):
+        print "no match for filename "+filename
+        return HttpResponse()
+    try:
+        wrapper = FileWrapper(file(DATA_DIR+filename))
+        response = HttpResponse(wrapper, content_type='multipart/x-gzip')
+        response['Content-Disposition'] = 'attachment; filename=\"'+filename+'\"'
+    except IOError:
+        print "unable to open file: " + filename
+        response = HttpResponse("Unable to locate your file.")
+    return response

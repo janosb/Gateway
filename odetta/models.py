@@ -4,18 +4,19 @@ from django import forms
 
 
 class Publications(models.Model):
-    modeltype = models.CharField(max_length=40, blank = True, verbose_name='Model Type')
+    modeltype = models.CharField(max_length=40, blank=True, verbose_name='Model Type')
     modeldim = models.IntegerField(verbose_name='Model Dimension')
     date_entered = models.DateField(verbose_name='Date Entered')
     citation = models.CharField(max_length=200, blank=True, verbose_name='Citation')
-    type = models.CharField(max_length=10, blank = True, verbose_name='Type')
+    type = models.CharField(max_length=10, blank=True, verbose_name='Type')
     pub_id = models.IntegerField(primary_key=True, verbose_name='Publication ID')
-    fullname = models.CharField(max_length=200,blank=True)
-    shortname = models.CharField(max_length=200,blank=True)
+    fullname = models.CharField(max_length=200, blank=True)
+    shortname = models.CharField(max_length=200, blank=True)
     is_public = models.BooleanField()
     metatype = models.CharField(max_length=20, blank=True)
     summary = models.TextField()
-    url = models.CharField(max_length=200,blank=True)
+    url = models.CharField(max_length=200, blank=True)
+    data_urls = models.TextField(blank=True)
 
     class Meta:
         db_table = 'publications'
