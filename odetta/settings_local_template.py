@@ -8,3 +8,12 @@ DATABASES = {
         'PORT': '5432',                      # Set to empty string for default. Not used with sqlite3.
     }
 }
+
+# turn off extra url prefix
+FORCE_SCRIPT_NAME = ''
+
+# re-route to local static files
+STATIC_URL = '/static/'
+
+# where to upload files
+STATIC_ROOT = ''

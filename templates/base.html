@@ -80,7 +80,7 @@
             <div class="container">
                 <a class="brand" href="#">Odetta</a>
                 <ul class="nav">
-                    <li><a href="/odetta/">Home</a></li>
+                    <li><a href="/">Home</a></li>
                     <li><a href="{% url 'odetta.views.browse' %}">Browse Spectra</a></li>
                     <li><a href="{% url 'odetta.views.search_models' %}">Search Spectra</a></li>
                     <li><a href="{% url 'odetta.views.fitter' %}">Fitter</a></li>
@@ -89,7 +89,7 @@
             </div>
         </div>
     </div>
-    <header>
+    <header style="background: url('{% static "img/stars-bg.jpg" %}')">
         <div class="container">
             {% block heading %}
             <h1>ODETTA</h1>
