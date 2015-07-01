@@ -313,7 +313,7 @@ function preloadData(method, step, step2){
     $(".graph").append("<div id='loadingscreen'><img width='32px' height='32px' src='/site_media/odetta/img/loader.gif'/></div>");
     $(".btn").attr("disabled",true);
     $(".nav-list li").attr("class","disabled");
-    d3.json("/odetta/ajax/"+method+"/"+m_id+"/"+step+"/" + step2 + "/", function(error, data){
+    d3.json(home_url+"ajax/"+method+"/"+m_id+"/"+step+"/" + step2 + "/", function(error, data){
         if (error){
             console.log(error);
         }else{
@@ -360,12 +360,12 @@ function getData(time, mu, phi){
         graphData(frameData[time][mu][phi]);
         currTime = parseInt(time);
         currMu = parseInt(mu);
-        currPhi = parseInt(phi)
+        currPhi = parseInt(phi);
         if(rescale){
             restoreScale();
         }
     }else{
-        d3.json("/odetta/ajax/plot/"+m_id+"/"+time+"/"+mu+"/"+phi+"/", function(error, data){
+        d3.json(home_url+"ajax/plot/"+m_id+"/"+time+"/"+mu+"/"+phi+"/", function(error, data){
             if (error || data.success == false){
                 if(error){
                     console.log(error);
@@ -392,7 +392,7 @@ function getData(time, mu, phi){
 }
 
 function getPlot(time,mu,phi){
-    d3.json("/odetta/ajax/plot/"+m_id+"/"+time+"/"+mu+"/"+phi+"/", function(error, data){
+    d3.json(home_url+"ajax/plot/"+m_id+"/"+time+"/"+mu+"/"+phi+"/", function(error, data){
         if (error || data.success == false){
             if(error){
                 console.log(error);

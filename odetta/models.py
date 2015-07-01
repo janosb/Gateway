@@ -1,6 +1,23 @@
 from __future__ import unicode_literals
 from django.db import models
 from django import forms
+import json
+
+from numpy import genfromtxt
+
+from odetta.settings import RAW_DATA_DIR, RAW_DATA_ROOT
+
+
+class PublicationsManager(models.Manager):
+    def get_or_create_publication(self, publication_dict):
+        try:
+            publication = Publications.objects.get(shortname=publication_dict.get("shortname"))
+            return publication, False
+        except Publications.DoesNotExist:
+            publication = self.model()
+            for k, v in publication_dict.items():
+                setattr(publication, k, v)
+            return publication, True
 
 
 class Publications(models.Model):
@@ -9,47 +26,108 @@ class Publications(models.Model):
     date_entered = models.DateField(verbose_name='Date Entered')
     citation = models.CharField(max_length=200, blank=True, verbose_name='Citation')
     type = models.CharField(max_length=10, blank=True, verbose_name='Type')
-    pub_id = models.IntegerField(primary_key=True, verbose_name='Publication ID')
     fullname = models.CharField(max_length=200, blank=True)
     shortname = models.CharField(max_length=200, blank=True)
     is_public = models.BooleanField()
-    metatype = models.CharField(max_length=20, blank=True)
     summary = models.TextField()
     url = models.CharField(max_length=200, blank=True)
     data_urls = models.TextField(blank=True)
+
+    objects = PublicationsManager()
 
     class Meta:
         db_table = 'publications'
 
 
-class Chi2Test(models.Model):
-    fname = models.CharField(max_length=200, blank=True)
-    chi2dof = models.FloatField(null=True, blank=True)
-    chi2dof_bin = models.FloatField(null=True, blank=True)
-    dof = models.IntegerField(null=True, blank=True)
-    dofb = models.IntegerField(null=True, blank=True)
+class PublishedModelManager(models.Manager):
+    def get_or_create_published_model(self, metadata, model_name):
+        try:
+            pm = PublishedModel.objects.get(metadata=metadata, name=model_name)
+            return pm, False
+        except PublishedModel.DoesNotExist:
+            pm = self.model()
+            pm.metadata = metadata
+            pm.name = model_name
+            return pm, True
+
+
+class PublishedModel(models.Model):
+    publication = models.ForeignKey('Publications')
+    metadata = models.TextField(blank=False)
+    name = models.CharField(max_length=30)
+    objects = PublishedModelManager()
 
     class Meta:
-        db_table = 'chi2test'
+        db_table = 'published_model'
+
+    def has_mu(self):
+        return self.spectra_set.distinct("mu").count() > 1
+
+    def has_phi(self):
+        return self.spectra_set.distinct("phi").count() > 1
+
+
+class SpectraManager(models.Manager):
+    def get_or_create_spectrum(self, model_id, t_expl, mu, phi):
+        try:
+            spec = Spectra.objects.get(t_expl=t_expl, mu=mu, phi=phi, published_model_id=model_id)
+            return spec, False
+        except Spectra.DoesNotExist:
+            spec = self.model()
+            spec.t_expl = t_expl
+            spec.mu = mu
+            spec.phi = phi
+            return spec, True
 
 
 class Spectra(models.Model):
-    model_id = models.IntegerField()
-    spec_id = models.IntegerField(primary_key=True)
-    t_expl= models.FloatField(null=True,blank=True)
-    mu = models.FloatField(null=True,blank=True)
+    published_model = models.ForeignKey("PublishedModel")
+    t_expl = models.FloatField(null=True, blank=True)
+    mu = models.FloatField(null=True, blank=True)
     phi = models.FloatField(null=True, blank=True)
-    metatype = models.CharField(max_length=20, blank=True)
-    
+
+    b_landolt = models.FloatField(null=True, blank=True)
+    r_landolt = models.FloatField(null=True, blank=True)
+    i_landolt = models.FloatField(null=True, blank=True)
+    ux_landolt = models.FloatField(null=True, blank=True)
+    v_landolt = models.FloatField(null=True, blank=True)
+
+    objects = SpectraManager()
+
     class Meta:
         db_table = 'spectra'
 
+    # fill in the values for landolt filter lightcurve points
+    def calculate_lc_points(self):
+        pass
+
+    def add_fluxvals(self, rel_file_path, columns, header_lines):
+        try:
+            full_path = RAW_DATA_ROOT+RAW_DATA_DIR+rel_file_path
+            wave, lum, ph_ct = genfromtxt(full_path, skip_header=header_lines, usecols=columns, unpack=True)
+            for i in range(len(wave)):
+                fluxes = Fluxvals.objects.get_or_create_fluxval(wave[i], lum[i], ph_ct[i])
+                self.fluxvals_set.add(fluxes)
+        except IOError:
+            print "Failed to open file: %s" % full_path
+
+
+class FluxvalsManager(models.Manager):
+    def get_or_create_fluxval(self, wave, lum, ph_ct):
+        fval = self.model()
+        fval.wavelength = wave
+        fval.luminosity = lum
+        fval.photon_count = ph_ct
+        return fval
+
 
 class Fluxvals(models.Model):
-    spec_id = models.IntegerField(primary_key=True)
+    spectrum = models.ForeignKey('Spectra')
     wavelength = models.FloatField()
     luminosity = models.FloatField(null=True, blank=True)
     photon_count = models.FloatField(null=True, blank=True)
+
+    objects = FluxvalsManager()
 
     class Meta:
         db_table = 'fluxvals'
@@ -151,27 +229,27 @@ class LCVals(models.Model):
 
 
 def get_time_max(model_id):
-    return Spectra.objects.filter(model_id=model_id).values("t_expl").distinct("t_expl").order_by("t_expl").count() - 1
+    return Spectra.objects.filter(published_model_id=model_id).values("t_expl").distinct("t_expl").order_by("t_expl").count() - 1
 
 
 def get_mu_max(model_id):
-    return Spectra.objects.filter(model_id=model_id).values("mu").distinct("mu").order_by("-mu").count() - 1
+    return Spectra.objects.filter(published_model_id=model_id).values("mu").distinct("mu").order_by("-mu").count() - 1
 
 
 def get_phi_max(model_id):
-    return Spectra.objects.filter(model_id=model_id).values("phi").distinct("phi").order_by("-phi").count() - 1
+    return Spectra.objects.filter(published_model_id=model_id).values("phi").distinct("phi").order_by("-phi").count() - 1
 
 
 def get_time_val(model_id):
     times = []
-    for time in Spectra.objects.filter(model_id = model_id).values("t_expl").distinct("t_expl").order_by("t_expl"):
+    for time in Spectra.objects.filter(published_model_id=model_id).values("t_expl").distinct("t_expl").order_by("t_expl"):
         times.append(time["t_expl"]) 
     return times
 
 
 def get_mu_val(model_id):
     mu_steps = []
-    for mu in Spectra.objects.filter(model_id = model_id).values("mu").distinct("mu").order_by("mu"):
+    for mu in Spectra.objects.filter(published_model_id=model_id).values("mu").distinct("mu").order_by("mu"):
         mu_steps.append(mu["mu"]) 
     return mu_steps
 
@@ -180,3 +258,15 @@ class SearchForm(forms.Form):
     min_mass = forms.IntegerField(required=False, label='Minimum Mass')
     max_mass = forms.IntegerField(required=False, label="Maximum Mass")
     max_lum = forms.IntegerField(required=False, label="Peak Luminosity")
+
+
+
+class Chi2Test(models.Model):
+    fname = models.CharField(max_length=200, blank=True)
+    chi2dof = models.FloatField(null=True, blank=True)
+    chi2dof_bin = models.FloatField(null=True, blank=True)
+    dof = models.IntegerField(null=True, blank=True)
+    dofb = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'chi2test'

@@ -21,8 +21,12 @@ DATABASES = {
 # where "home" will point
 #HOME_URL = '/'
 
-# absolute path to data
+# absolute path to public data
 #DATA_ROOT = ''
-
-# put data into local /public_data/ directory
+# put public data into local /public_data/ directory
 #DATA_DIR = '/public_data/'
+
+# absolute path to raw_data
+#RAW_DATA_ROOT = ''
+# put raw data into local /raw_data/ directory
+#RAW_DATA_DIR = '/raw_data/'

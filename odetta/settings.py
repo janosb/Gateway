@@ -59,11 +59,13 @@ STATIC_URL = '/site_media/odetta/'
 
 FORCE_SCRIPT_NAME = '/odetta'
 
-HOME_URL = '/odetta'
+HOME_URL = '/odetta/'
 
 DATA_ROOT = STATIC_ROOT
-
 DATA_DIR = '/public_data/'
+
+RAW_DATA_ROOT = STATIC_ROOT
+RAW_DATA_DIR = '/raw_data/'
 
 # Additional locations of static files
 STATICFILES_DIRS = (

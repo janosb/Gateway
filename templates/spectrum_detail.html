@@ -98,7 +98,7 @@
         }
     });
 
-    var m_id = {{meta_data.model_id}};
+    var m_id = {{published_model.id}};
     $(function() {
         // preloadData(0,100);
         $( "#time-slider" ).slider({
@@ -114,7 +114,7 @@
                 getData(ui.value, currMu, currPhi);
                 $("#timeStep").val(ui.value);
                 $("#time").val(parseFloat({{time_vals}}[ui.value]).toFixed(1));
-                $("#image_download").attr("href","/odetta/plot/{{meta_data.model_id}}/" + $("#timeStep").val() + "/" + $("#muStep").val() + "/" + $("#phiStep").val() + "/img/?download=1");
+                $("#image_download").attr("href", "{{ home_url }}/plot/{{published_model.id}}/" + $("#timeStep").val() + "/" + $("#muStep").val() + "/" + $("#phiStep").val() + "/img/?download=1");
             },
         });
         $( "#mu-slider" ).slider({
@@ -130,7 +130,7 @@
                 getData(currTime, ui.value, currPhi);
                 $("#muStep").val(ui.value);
                 $("#muVal").val(parseFloat({{mu_vals}}[ui.value]).toFixed(1));
-                $("#image_download").attr("href","/odetta/plot/{{meta_data.model_id}}/" + $("#timeStep").val() + "/" + $("#muStep").val() + "/" + $("#phiStep").val() + "/img/?download=1");
+                $("#image_download").attr("href", "{{ home_url }}/plot/{{published_model.id}}/" + $("#timeStep").val() + "/" + $("#muStep").val() + "/" + $("#phiStep").val() + "/img/?download=1");
             },
         });
         $( "#phi-slider" ).slider({
@@ -146,7 +146,7 @@
                 getData(currTime, currMu, ui.value);
                 $("#muStep").val(ui.value);
                 $("#muVal").val(parseFloat({{phi_vals}}[ui.value]).toFixed(1));
-                $("#image_download").attr("href","/odetta/plot/{{meta_data.model_id}}/" + $("#timeStep").val() + "/" + $("#muStep").val() + "/" + $("#phiStep").val() + "/img/?download=1");
+                $("#image_download").attr("href", "{{ home_url }}/plot/{{published_model.id}}/" + $("#timeStep").val() + "/" + $("#muStep").val() + "/" + $("#phiStep").val() + "/img/?download=1");
             },
         });
         $("#time").change(function(){
@@ -171,9 +171,9 @@
             <li class="nav-header">Index</li>
             <li><a href="#graph">Graph</a></li>
             <li><a href="#details">Details</a></li>
-            <li><a id = "image_download" href="{% url 'odetta.views.plot_img' model_id=meta_data.model_id time_step=0 mu_step=0 phi_step=0 %}?download=1">Download Image</a></li>
+            <li><a id = "image_download" href="{% url 'odetta.views.plot_img' model_id=published_model.id time_step=0 mu_step=0 phi_step=0 %}?download=1">Download Image</a></li>
             <li><a href="{% url 'odetta.views.get_zip_file' %}">Download Model</a></li>
-            <li><a href="{% url 'odetta.views.upload' model_id=meta_data.model_id %}" class = "popup">Upload File</a></li>
+            <li><a href="{% url 'odetta.views.upload' model_id=published_model.id %}" class = "popup">Upload File</a></li>
         </ul> 
     </div>
     <div class = "well">
@@ -184,12 +184,12 @@
 </div>
 <div class = "span10" id = "grapharea">
     <ul class = "nav nav-tabs">
-        <li class = "active"><a href="#{{meta_data.modelname}}-fluxvals" data-toggle = "tab">Flux Graphs</a></li>
-        <li><a href="#{{meta_data.modelname}}-lightcurve" data-toggle = "tab">Light Curves</a></li>
+        <li class = "active"><a href="#{{published_model.name}}-fluxvals" data-toggle = "tab">Flux Graphs</a></li>
+        <li><a href="#{{published_model.name}}-lightcurve" data-toggle = "tab">Light Curves</a></li>
     </ul>
     <div class = "tab-content">
-        <div class = "tab-pane tab tabactive" id = "{{meta_data.modelname}}-fluxvals">
-            <h1>{{meta_data.modelname}}</h1>
+        <div class = "tab-pane tab tabactive" id = "{{published_model.name}}-fluxvals">
+            <h1>{{published_model.name}}</h1>
             <div class="graph" id="graph" oncontextmenu="return false">
                 <h2>Spectrum Graph</h2>
             </div>
@@ -213,7 +213,7 @@
                     </div>
                     <p>Time:</p>
                     <div id="time-slider" class = "sliders"></div>
-                    {% if meta_data.has_mu %}
+                    {% if published_model.has_mu %}
                         <div class="btn-group">
                             <button class="btn" href="#" onclick="moveFrame(0, -1, 0)"><i class="icon-chevron-left"></i></button>
                             <input type="text" id="muVal" value="0"/>
@@ -224,7 +224,7 @@
                         <p>Mu:</p>
                         <div id="mu-slider" class = "sliders"></div>
                     {% endif %}
-                    {% if meta_data.has_phi %}
+                    {% if published_model.has_phi %}
                         <div class="btn-group">
                             <button class="btn" href="#" onclick="moveFrame(0, 0, -1)"><i class="icon-chevron-left"></i></button>
                             <input type="text" id="phiVal" value="0"/>
@@ -260,7 +260,7 @@
                 </table>
             </div>
         </div>
-        <div class = "tab-pane tab" id = "{{meta_data.modelname}}-lightcurve">
+        <div class = "tab-pane tab" id = "{{published_model.name}}-lightcurve">
             <h1>Lightcurve Data</h1>
         </div>
     </div>

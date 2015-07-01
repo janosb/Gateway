@@ -19,8 +19,9 @@
                 <div class="result">
                     <a href="{{x.url}}">{{x.name}}</a>{% if x.data_urls %} ( download raw data: {% for url in x.data_urls %}
                     <a href="{% url 'odetta.views.download' url.0 %}">{{url.1}}</a> {% endfor %}){% endif %}
+                    {% if x.citation %}( read the paper: <a style="font-size:14px" href="{{ x.pub_url }}">{{ x.citation }}</a> ){% endif %}
                     <div class="details">
-                        {{x.details}}
+                        <p>{{x.details}}</p>
                     </div>
                 </div>
             {% endfor %}

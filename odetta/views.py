@@ -7,23 +7,18 @@ from django.shortcuts import render_to_response, redirect, get_object_or_404
 import simplejson
 from django.forms.models import model_to_dict
 from odetta_utils import *
-from django.template import RequestContext
-from django.core.urlresolvers import reverse
-from django.db.models import Q
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.core.files import File
-from odetta.settings import FITS_ROOT, HOME_URL, DATA_DIR, DATA_ROOT, TEMPPASSWORD
 import zipfile
-import glob,os
+import glob
+import os
 import re
 import StringIO
-import numpy as np
+
+from django.template import RequestContext
+from django.core.urlresolvers import reverse
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from odetta.settings import FITS_ROOT, HOME_URL, DATA_DIR, DATA_ROOT
 from odetta.odetta_wrappers import oplot_process
 from django.core.servers.basehttp import FileWrapper
-
-
-
-#from simple_chi2 import *
 
 
 def home_page(request):
@@ -35,25 +30,21 @@ def browse(request, pub_id=None):
     listing = []
     breadcrumbs = [{"name": "Publications", "url": reverse("odetta.views.browse")}]
     if pub_id:
-        pub = Publications.objects.get(pub_id=pub_id)
+        pub = Publications.objects.get(id=pub_id)
         validated = pub.is_public
         breadcrumbs.append({
             "name": pub.shortname,
             "url": reverse("odetta.views.browse", kwargs={"pub_id": pub_id}),
             "active": True,
         })
-        metatype = pub.metatype[:4].title() + pub.metatype[5:-1].title() + pub.metatype[-1:].upper()
-        data = eval(metatype).objects.filter(pub_id=pub_id).order_by("model_id")
-        for model in data:
-            details = ""
-            for field_name in model._meta.get_all_field_names():
-                field = model._meta.get_field(field_name)
-                if field_name not in ['modelname', 'model_id', 'pub_id']:
-                    details += "%s: %s; " % (field.verbose_name, model.__dict__[field_name])
+        pm_list = PublishedModel.objects.filter(publication_id=pub_id)
+        for pm in pm_list:
+            #details = simplejson.loads(model.metadata)
+            details = pm.metadata
             listing.append({
-                "obj": model,
-                "name": model.modelname,
-                "url": reverse("odetta.views.plot", kwargs={"model_id": model.model_id}),
+                "obj": pm.spectra_set,
+                "name": pm.name,
+                "url": reverse("odetta.views.plot", kwargs={"model_id": pm.id}),
                 "details": details
             })
     else:
@@ -64,15 +55,18 @@ def browse(request, pub_id=None):
         breadcrumbs = [{"name": "Publications", "url": reverse("odetta.views.browse"), "active": True}]
         for publication in data:
             details = ""
+            print publication._meta.get_all_field_names()
             for field_name in publication._meta.get_all_field_names():
                 field = publication._meta.get_field(field_name)
-                if field_name not in ['modeltype','fullname','is_public','shortname',
-                                      'pub_id', 'url', 'summary', 'metatype', 'data_urls']:
+                if field_name not in ['modeltype','fullname','is_public','shortname', 'id', 'citation',
+                                      'publishedmodel', 'url', 'summary', 'metatype', 'data_urls']:
                     details += "%s: %s; " % (field.verbose_name, publication.__dict__[field_name])
             listing_dict = {
                 "obj": publication,
                 "name": publication.fullname,
-                "url": reverse("odetta.views.browse", kwargs={"pub_id": publication.pub_id}),
+                "pub_url": publication.url,
+                "citation": publication.citation,
+                "url": reverse("odetta.views.browse", kwargs={"pub_id": publication.id}),
                 "details": details
             }
             data_urls = publication.data_urls.split(",")
@@ -80,7 +74,6 @@ def browse(request, pub_id=None):
             if publication.data_urls != u'':
                 listing_dict["data_urls"] = zip(data_urls, data_url_names)
             listing.append(listing_dict)
-    print listing
     MAX_ENTRIES = 6
 
     page = request.GET.get("page", 1)
@@ -151,11 +144,11 @@ def search_models(request):
                 return render_to_response('search.html',{"error":"Mass does not exist for that model"},
                                           context_instance=RequestContext(request, {"home_url": HOME_URL}))
             for model in metaobj.objects.filter(mass_wd__range=(minmass,maxmass)):
-                result_list.append({"pub":Publications.objects.get(pub_id = model.pub_id),"model":model})
+                result_list.append({"pub":Publications.objects.get(pub_id = model.id),"model":model})
                 pages = Paginator(result_list, MAX_ENTRIES)
         else:
             for model in MetaDd2D.objects.filter(mass_wd__range=(minmass,maxmass)):
-                result_list.append({"pub":Publications.objects.get(pub_id = model.pub_id),"model":model})
+                result_list.append({"pub":Publications.objects.get(pub_id = model.id),"model":model})
                 pages = Paginator(result_list, MAX_ENTRIES)
         try:
             results = pages.page(page)
@@ -185,36 +178,35 @@ def search_models(request):
 
 
 def plot(request, model_id):
-    metatype = Spectra.objects.filter(model_id = model_id).distinct("model_id")[0].metatype[:4].title() + Spectra.objects.filter(model_id = model_id).distinct("model_id")[0].metatype[5:-1].title() + Spectra.objects.filter(model_id = model_id).distinct("model_id")[0].metatype[-1:].upper()
-    meta_data = eval(metatype).objects.filter(model_id = model_id)[0]
+    pm = PublishedModel.objects.get(id=model_id)
+    pub = Publications.objects.get(id=pm.publication_id)
     breadcrumbs = [{"name": "Publications", "url": reverse("odetta.views.browse")}]
     breadcrumbs.append({
-        "name": Publications.objects.get(pub_id=meta_data.pub_id).shortname,
-        "url": reverse("odetta.views.browse", kwargs={"pub_id": meta_data.pub_id}),
+        "name": pub.shortname,
+        "url": reverse("odetta.views.browse", kwargs={"pub_id": pub.id}),
     })
     breadcrumbs.append({
-        "name": meta_data.modelname,
-        "url": reverse("odetta.views.plot", kwargs={"model_id": meta_data.model_id}),
+        "name": pm.name,
+        "url": reverse("odetta.views.plot", kwargs={"model_id": pm.id}),
         "active": True
     })
 
     # Creates a detail array for display on table below graph
     # Excludes the fields in the excludes array
-    details = []
-    for field in meta_data._meta.get_all_field_names():
-        details.append((meta_data._meta.get_field(field).verbose_name, getattr(meta_data, field.__str__())))
+    details = pm.metadata
+    #for field in meta_data._meta.get_all_field_names():
+    #    details.append((meta_data._meta.get_field(field).verbose_name, getattr(meta_data, field.__str__())))
     return render_to_response("spectrum_detail.html",
-                              {"breadcrumbs":breadcrumbs, "details": details, "meta_data": meta_data,
+                              {"breadcrumbs":breadcrumbs, "details": details, "published_model": pm,
                                "mu_max": get_mu_max(model_id), "time_max": get_time_max(model_id),
-                               "phi_max":get_phi_max(model_id), "time_vals":get_time_val(model_id),
-                               "mu_vals": get_mu_val(model_id), "summary": Publications.objects.get(pub_id = meta_data.pub_id).summary,
-                               "url": Publications.objects.get(pub_id = meta_data.pub_id).url},
-                              context_instance=RequestContext(request, {"home_url": HOME_URL}))
-    # return render_to_response("spectrum_detail.html", {"details": details, "meta_data": meta_data}, context_instance=RequestContext(request))
+                               "phi_max":get_phi_max(model_id), "time_vals": get_time_val(model_id),
+                               "mu_vals": get_mu_val(model_id), "summary": pub.summary,
+                               "url": pub.url},
+                              context_instance=RequestContext(request, {"home_url": HOME_URL, "m_id": pm.id}))
 
 
 def get_plot_data(request, model_id, time_step=0, mu_step=0, phi_step=0):
-    spectra = Spectra.objects.filter(model_id=model_id)
+    spectra = Spectra.objects.filter(published_model_id=model_id)
     if spectra.count() <= 0:
         raise Http404
 
@@ -239,7 +231,9 @@ def get_plot_data(request, model_id, time_step=0, mu_step=0, phi_step=0):
     spec_data = spectra.get(mu__range=(mu-0.01, mu+0.01), t_expl__range=(t_expl-0.01, t_expl+0.01), phi__range=(phi-0.01, phi+0.01))
 
     # Populates a flux data array from the spec_id of the selected meta_data
-    qset = Fluxvals.objects.filter(spec_id=spec_data.spec_id).order_by("wavelength")
+    #qset = Fluxvals.objects.filter(spectrum_id=spec_data.id).order_by("wavelength")
+    qset = spec_data.fluxvals_set.order_by("wavelength")
+
     flux_data = []
     for rec in qset:
         flux_data.append({
@@ -247,7 +241,7 @@ def get_plot_data(request, model_id, time_step=0, mu_step=0, phi_step=0):
             "y": rec.luminosity,  # Graph's Y-Axis
         })
     data = {
-        "model_id": int(spec_data.model_id),
+        "model_id": int(spec_data.id),
         "time_step": int(time_step),
         "t_expl": float(t_expl),
         "max_time_steps": all_time_steps.count()-1,
@@ -262,7 +256,7 @@ def get_plot_data(request, model_id, time_step=0, mu_step=0, phi_step=0):
 
 
 def batch_time_data(request, model_id, mu_step, phi_step):
-    model = Spectra.objects.filter(model_id=model_id)
+    model = Spectra.objects.filter(published_model_id=model_id)
 
     if model.count() <= 0:
         raise Http404
@@ -289,7 +283,7 @@ def batch_time_data(request, model_id, mu_step, phi_step):
             "phi_step": int(phi_step),
             "flux_data": [],
         })
-        qset = Fluxvals.objects.filter(spec_id=m.spec_id).order_by("wavelength")
+        qset = Fluxvals.objects.filter(spectrum_id=m.id).order_by("wavelength")
         for rec in qset:
             data[index]['flux_data'].append({
                 "x": rec.wavelength,  # Graph's X-Axis
@@ -300,7 +294,7 @@ def batch_time_data(request, model_id, mu_step, phi_step):
 
 
 def batch_mu_data(request, model_id, time_step, phi_step):
-    model = Spectra.objects.filter(model_id=model_id)
+    model = Spectra.objects.filter(published_model_id=model_id)
 
     if model.count() <= 0:
         raise Http404
@@ -326,7 +320,7 @@ def batch_mu_data(request, model_id, time_step, phi_step):
             "phi_step": int(phi_step),
             "flux_data": [],
         })
-        qset = Fluxvals.objects.filter(spec_id=m.spec_id).order_by("wavelength")
+        qset = Fluxvals.objects.filter(spectrum_id=m.id).order_by("wavelength")
         for rec in qset:
             data[index]['flux_data'].append({
                 "x": rec.wavelength,  # Graph's X-Axis
@@ -336,7 +330,7 @@ def batch_mu_data(request, model_id, time_step, phi_step):
     return HttpResponse(simplejson.dumps(data), content_type="application/json")
 
 def batch_phi_data(request, model_id, time_step, mu_step):
-    model = Spectra.objects.filter(model_id=model_id)
+    model = Spectra.objects.filter(published_model_id=model_id)
 
     if model.count() <= 0:
         raise Http404
@@ -359,10 +353,9 @@ def batch_phi_data(request, model_id, time_step, mu_step):
         data.append({
             "time_step": int(time_step),
             "mu_step": int(index),
-            "phi_step": int(phi_step),
             "flux_data": [],
         })
-        qset = Fluxvals.objects.filter(spec_id=m.spec_id).order_by("wavelength")
+        qset = Fluxvals.objects.filter(spectrum_id=m.id).order_by("wavelength")
         for rec in qset:
             data[index]['flux_data'].append({
                 "x": rec.wavelength,  # Graph's X-Axis
@@ -421,7 +414,7 @@ def run_all_data(request, x2, y2, y2var):
 
 
 def plot_img(request, model_id, time_step=0, mu_step=0, phi_step=0):
-    model = Spectra.objects.filter(model_id=model_id)
+    model = Spectra.objects.filter(published_model_id=model_id)
     if model.count() <= 0:
         raise Http404
 
@@ -443,13 +436,13 @@ def plot_img(request, model_id, time_step=0, mu_step=0, phi_step=0):
 
     # Gets the meta data based on the calculated mu and t_expl
     # Uses range to prevent floating point errors
-    meta_data = model.get(mu__range=(mu-0.01, mu+0.01), t_expl__range=(t_expl-0.01, t_expl+0.01))
+    spec = model.get(mu__range=(mu-0.01, mu+0.01), t_expl__range=(t_expl-0.01, t_expl+0.01))
 
     # Populates a flux data array from the spec_id of the selected meta_data
-    qset = Fluxvals.objects.filter(spec_id=meta_data.spec_id).order_by("wavelength")
+    qset = Fluxvals.objects.filter(spectrum_id=spec.id).order_by("wavelength")
     wave = [rec.wavelength for rec in qset]
     lum = [rec.luminosity for rec in qset]
-    spec_id = meta_data.spec_id
+    spec_id = spec.id
     ttle = 'Model '+str(spec_id)
     xl = 'Wavelength (A)'
     yl = 'Luminosity'
@@ -470,7 +463,7 @@ def plot_img(request, model_id, time_step=0, mu_step=0, phi_step=0):
 
 
 def plot_few(request,id):
-    qset = Spectra.objects.filter(model_id=id)
+    qset = Spectra.objects.filter(published_model_id=id)
     wave = [rec.wavelength for rec in qset]
     lum = [rec.luminosity for rec in qset]
     ttle = 'Model '+str(id)

@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Fluxvals',
             fields=[
-                ('spec_id', models.IntegerField(serialize=False, primary_key=True)),
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('wavelength', models.FloatField()),
                 ('luminosity', models.FloatField(null=True, blank=True)),
                 ('photon_count', models.FloatField(null=True, blank=True)),
@@ -127,35 +127,56 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Publications',
             fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('modeltype', models.CharField(max_length=40, verbose_name='Model Type', blank=True)),
                 ('modeldim', models.IntegerField(verbose_name='Model Dimension')),
                 ('date_entered', models.DateField(verbose_name='Date Entered')),
                 ('citation', models.CharField(max_length=200, verbose_name='Citation', blank=True)),
                 ('type', models.CharField(max_length=10, verbose_name='Type', blank=True)),
-                ('pub_id', models.IntegerField(serialize=False, verbose_name='Publication ID', primary_key=True)),
                 ('fullname', models.CharField(max_length=200, blank=True)),
                 ('shortname', models.CharField(max_length=200, blank=True)),
                 ('is_public', models.BooleanField()),
                 ('metatype', models.CharField(max_length=20, blank=True)),
                 ('summary', models.TextField()),
                 ('url', models.CharField(max_length=200, blank=True)),
+                ('data_urls', models.TextField(blank=True)),
             ],
             options={
                 'db_table': 'publications',
             },
         ),
         migrations.CreateModel(
+            name='PublishedModel',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('metadata', models.TextField()),
+                ('publication', models.ForeignKey(to='odetta.Publications')),
+            ],
+            options={
+                'db_table': 'published_model',
+            },
+        ),
+        migrations.CreateModel(
             name='Spectra',
             fields=[
-                ('model_id', models.IntegerField()),
-                ('spec_id', models.IntegerField(serialize=False, primary_key=True)),
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('t_expl', models.FloatField(null=True, blank=True)),
                 ('mu', models.FloatField(null=True, blank=True)),
                 ('phi', models.FloatField(null=True, blank=True)),
-                ('metatype', models.CharField(max_length=20, blank=True)),
+                ('b_landolt', models.FloatField(null=True, blank=True)),
+                ('r_landolt', models.FloatField(null=True, blank=True)),
+                ('i_landolt', models.FloatField(null=True, blank=True)),
+                ('ux_landolt', models.FloatField(null=True, blank=True)),
+                ('v_landolt', models.FloatField(null=True, blank=True)),
+                ('published_model', models.ForeignKey(to='odetta.PublishedModel')),
             ],
             options={
                 'db_table': 'spectra',
             },
+        ),
+        migrations.AddField(
+            model_name='fluxvals',
+            name='spectrum',
+            field=models.ForeignKey(to='odetta.Spectra'),
         ),
     ]
