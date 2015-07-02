@@ -1,9 +1,11 @@
 from __future__ import unicode_literals
 from django.db import models
 from django import forms
-import json
+from odetta.helpers.lightcurve import lc_point
 
 from numpy import genfromtxt
+from numpy import interp
+from numpy import linspace
 
 from odetta.settings import RAW_DATA_DIR, RAW_DATA_ROOT
 
@@ -98,16 +100,30 @@ class Spectra(models.Model):
         db_table = 'spectra'
 
     # fill in the values for landolt filter lightcurve points
-    def calculate_lc_points(self):
-        pass
+    def fill_in_lc(self, filters, wave, lum):
+        print "filling in LC, %.2e" % lc_point(wave, lum, filters["b_wave"], filters["b_trans"])
+        self.b_landolt = lc_point(wave, lum, filters["b_wave"], filters["b_trans"])
+        self.r_landolt = lc_point(wave, lum, filters["r_wave"], filters["r_trans"])
+        self.i_landolt = lc_point(wave, lum, filters["i_wave"], filters["i_trans"])
+        self.ux_landolt = lc_point(wave, lum, filters["ux_wave"], filters["ux_trans"])
+        self.v_landolt = lc_point(wave, lum, filters["v_wave"], filters["v_trans"])
+        self.save()
 
-    def add_fluxvals(self, rel_file_path, columns, header_lines):
+    def add_fluxvals(self, rel_file_path, columns, header_lines, filters):
         try:
             full_path = RAW_DATA_ROOT+RAW_DATA_DIR+rel_file_path
             wave, lum, ph_ct = genfromtxt(full_path, skip_header=header_lines, usecols=columns, unpack=True)
+            if len(wave) > 1000:
+                old_wave = wave
+                old_lum = lum
+                old_ph = ph_ct
+                wave = linspace(min(wave), max(wave), 1000)
+                lum = interp(wave, old_wave, old_lum)
+                ph_ct = interp(wave, old_wave, old_ph)
             for i in range(len(wave)):
                 fluxes = Fluxvals.objects.get_or_create_fluxval(wave[i], lum[i], ph_ct[i])
                 self.fluxvals_set.add(fluxes)
+            self.fill_in_lc(filters, wave, lum)
         except IOError:
             print "Failed to open file: %s" % full_path
 
