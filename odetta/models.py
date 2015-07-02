@@ -167,23 +167,6 @@ class MetaDd2D(models.Model):
     class Meta:
         db_table = 'meta_dd2d'
 
-    # @property
-    # def date_entered(self):
-    #     return Models.objects.values("date_entered").get(m_type_id=self.m_type_id)['date_entered']
-
-    # @property
-    # def sntype(self):
-    #     return Models.objects.values("sntype").get(m_type_id=self.m_type_id)['sntype']
-
-    # @property
-    # def citation(self):
-    #     return Models.objects.values("citation").get(m_type_id=self.m_type_id)['citation']
-
-    def has_mu(self):
-        return Spectra.objects.filter(model_id=self.model_id).distinct("mu").count() > 1
-
-    def has_phi(self):
-        return Spectra.objects.filter(model_id=self.model_id).distinct("phi").count() > 1
 
 
 class MetaNsm1D(models.Model):
